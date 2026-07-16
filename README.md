@@ -72,6 +72,8 @@ Express is a fast, open and concise web framework and is a Node.js based project
 
 ```bash
 $ npm install -g typescript-express-starter
+
+npm install -g github:NaanKaran/typescript-express-starter#releases-v10.2.1
 ```
 
 ### Run npx to Install The Package

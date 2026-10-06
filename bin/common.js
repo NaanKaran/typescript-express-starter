@@ -317,7 +317,7 @@ export const DEVTOOLS_VALUES = [
     category: 'Linter',
     files: ['.oxlintrc.json', '.prettierrc'],
     pkgs: [],
-    devPkgs: ['oxlint@^1.14.0', '@oxlint/migrate@^1.14.0', 'prettier@3.6.2'],
+    devPkgs: ['oxlint@1.87.0', '@oxlint/migrate@1.87.0', 'prettier@3.6.2'],
     scripts: {
       lint: 'oxlint .',
       'lint:fix': 'oxlint . --fix',

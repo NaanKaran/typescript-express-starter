@@ -7,9 +7,8 @@ import helmet from 'helmet';
 import hpp from 'hpp';
 import morgan from 'morgan';
 import { NODE_ENV, PORT, LOG_FORMAT, CREDENTIALS, CORS_ORIGIN_LIST } from '@config/env';
-import { connectDB, disconnectDB } from '@config/database';
-import { setupContainer } from '@config/container';
-import { Routes } from '@interfaces/routes.interface';
+import { isDBConnected } from '@config/database';
+import type { Routes } from '@interfaces/routes.interface';
 import { ErrorMiddleware } from '@middlewares/error.middleware';
 import { NotFoundMiddleware } from '@middlewares/notFound.middleware';
 import { logger, stream } from '@utils/logger';
@@ -22,14 +21,11 @@ class App {
   constructor(routes: Routes[], apiPrefix = '/api/v1') {
     this.app = express();
     this.env = NODE_ENV || 'development';
-    this.port = PORT || 3000;
-
-    // MongoDB 연결 및 DI Container 설정
-    this.initializeDatabase();
-    this.initializeContainer();
+    this.port = PORT ?? 3000;
 
     this.initializeTrustProxy();
     this.initializeMiddlewares();
+    this.initializeHealthCheck();
     this.initializeRoutes(routes, apiPrefix);
     this.initializeErrorHandling();
   }
@@ -87,6 +83,7 @@ class App {
     );
 
     this.app.use(hpp());
+
     this.app.use(
       helmet({
         contentSecurityPolicy:
@@ -109,53 +106,28 @@ class App {
     this.app.use(cookieParser());
   }
 
+  private initializeHealthCheck() {
+    // 로드밸런서/쿠버네티스 프로브용 헬스체크 (DB 연결 상태 포함)
+    this.app.get('/health', (_req, res) => {
+      const dbUp = isDBConnected();
+      res.status(dbUp ? 200 : 503).json({
+        status: dbUp ? 'ok' : 'degraded',
+        database: dbUp ? 'connected' : 'disconnected',
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+      });
+    });
+  }
+
   private initializeRoutes(routes: Routes[], apiPrefix: string) {
     routes.forEach((route) => {
-      this.app.use(apiPrefix, route.router);
+      this.app.use(apiPrefix + (route.path ?? ''), route.router);
     });
   }
 
   private initializeErrorHandling() {
     this.app.use(NotFoundMiddleware);
     this.app.use(ErrorMiddleware);
-  }
-
-  /**
-   * MongoDB 데이터베이스 초기화
-   */
-  private async initializeDatabase(): Promise<void> {
-    try {
-      await connectDB();
-      logger.info('✅ MongoDB connection initialized');
-    } catch (error) {
-      logger.error('❌ MongoDB connection failed:', error);
-      process.exit(1);
-    }
-  }
-
-  /**
-   * DI Container 초기화
-   */
-  private initializeContainer(): void {
-    try {
-      setupContainer();
-      logger.info('✅ DI Container initialized');
-    } catch (error) {
-      logger.error('❌ DI Container initialization failed:', error);
-      process.exit(1);
-    }
-  }
-
-  /**
-   * 앱 종료 시 정리 작업
-   */
-  public async shutdown(): Promise<void> {
-    try {
-      await disconnectDB();
-      logger.info('✅ Application shutdown completed');
-    } catch (error) {
-      logger.error('❌ Error during shutdown:', error);
-    }
   }
 }
 

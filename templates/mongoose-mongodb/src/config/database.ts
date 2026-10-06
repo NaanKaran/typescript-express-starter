@@ -1,77 +1,72 @@
+import os from 'node:os';
 import mongoose from 'mongoose';
-import { MONGODB_URI, NODE_ENV } from './env';
+import { MONGODB_DB_NAME, MONGODB_MAX_POOL_SIZE, MONGODB_URL, NODE_ENV } from '@config/env';
 import { logger } from '@utils/logger';
 
 /**
- * MongoDB 연결 옵션
+ * Mongoose 전역 설정
+ * - strictQuery: 스키마에 없는 필드로 필터링하면 무시
+ * - debug: 개발 환경에서 쿼리 로깅
  */
-const mongooseOptions: mongoose.ConnectOptions = {
-  maxPoolSize: 10, // 최대 연결 풀 크기
-  serverSelectionTimeoutMS: 5000, // 서버 선택 타임아웃
-  socketTimeoutMS: 45000, // 소켓 타임아웃
-  bufferCommands: false, // 연결되지 않은 상태에서 명령 버퍼링 비활성화
-  bufferMaxEntries: 0, // 버퍼 최대 항목 수
-};
+mongoose.set('strictQuery', true);
+if (NODE_ENV === 'development') {
+  mongoose.set('debug', (collection: string, method: string, ...args: unknown[]) => {
+    logger.debug({ collection, method, args }, 'mongoose');
+  });
+}
+
+let listenersRegistered = false;
+
+function registerConnectionListeners(): void {
+  if (listenersRegistered) return;
+  listenersRegistered = true;
+
+  mongoose.connection.on('connected', () => logger.info('🔗 MongoDB connected'));
+  mongoose.connection.on('reconnected', () => logger.info('🔁 MongoDB reconnected'));
+  mongoose.connection.on('disconnected', () => logger.warn('📴 MongoDB disconnected'));
+  mongoose.connection.on('error', (error: Error) => {
+    logger.error({ error: error.message }, '❌ MongoDB connection error');
+  });
+}
 
 /**
- * MongoDB 연결 함수
+ * MongoDB 연결
+ * @param uri 연결 문자열 (기본값: MONGODB_URL) - 테스트에서 in-memory 서버 주소 주입용
  */
-export const connectDB = async (): Promise<void> => {
-  try {
-    mongoose.set('strictQuery', false);
-
-    // 개발 환경에서 디버깅 활성화
-    if (NODE_ENV === 'development') {
-      mongoose.set('debug', true);
-    }
-
-    const conn = await mongoose.connect(MONGODB_URI, mongooseOptions);
-
-    logger.info(
-      `🚀 Connected to MongoDB: ${conn.connection.host}:${conn.connection.port}/${conn.connection.name}`,
-    );
-  } catch (error) {
-    logger.error('❌ MongoDB connection error:', error);
-    process.exit(1);
+export async function connectDB(uri: string = MONGODB_URL): Promise<typeof mongoose> {
+  if (mongoose.connection.readyState === mongoose.ConnectionStates.connected) {
+    return mongoose;
   }
-};
+
+  registerConnectionListeners();
+
+  const conn = await mongoose.connect(uri, {
+    dbName: MONGODB_DB_NAME,
+    maxPoolSize: MONGODB_MAX_POOL_SIZE,
+    serverSelectionTimeoutMS: 5_000,
+    socketTimeoutMS: 45_000,
+    // 프로덕션에서는 인덱스를 마이그레이션/스크립트(db:indexes)로 관리
+    autoIndex: NODE_ENV !== 'production',
+    // 드라이버 기본값은 동적 import('os')로 로드 → Jest(CJS VM) 환경에서 핸드셰이크 실패
+    // Node.js os 모듈을 명시적으로 주입해 모든 런타임/테스트 러너에서 동일하게 동작하도록 함
+    runtimeAdapters: { os },
+  });
+
+  logger.info(`🍃 Using MongoDB database "${conn.connection.name}"`);
+  return conn;
+}
 
 /**
- * MongoDB 연결 해제 함수
+ * MongoDB 연결 해제
  */
-export const disconnectDB = async (): Promise<void> => {
-  try {
-    await mongoose.disconnect();
-    logger.info('📴 Disconnected from MongoDB');
-  } catch (error) {
-    logger.error('❌ MongoDB disconnection error:', error);
-  }
-};
+export async function disconnectDB(): Promise<void> {
+  if (mongoose.connection.readyState === mongoose.ConnectionStates.disconnected) return;
+  await mongoose.disconnect();
+}
 
 /**
- * MongoDB 연결 상태 확인
+ * 연결 상태 확인 (헬스체크용)
  */
-export const isConnected = (): boolean => {
-  return mongoose.connection.readyState === 1;
-};
-
-/**
- * MongoDB 연결 이벤트 핸들러
- */
-mongoose.connection.on('connected', () => {
-  logger.info('🔗 Mongoose connected to MongoDB');
-});
-
-mongoose.connection.on('error', (error) => {
-  logger.error('❌ Mongoose connection error:', error);
-});
-
-mongoose.connection.on('disconnected', () => {
-  logger.warn('📴 Mongoose disconnected from MongoDB');
-});
-
-// 애플리케이션 종료 시 연결 정리
-process.on('SIGINT', async () => {
-  await disconnectDB();
-  process.exit(0);
-});
+export function isDBConnected(): boolean {
+  return mongoose.connection.readyState === mongoose.ConnectionStates.connected;
+}

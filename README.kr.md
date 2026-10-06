@@ -94,6 +94,7 @@ typescript-express-starter
 │  ● Express TypeScript (Basic Express + TypeScript starter · beginner · stable)
 │  ○ Drizzle PostgreSQL (Modern SQL toolkit with type safety + full devtools · intermediate · stable)
 │  ○ Express + express-cargo (Declarative validation & binding with decorators · intermediate · stable)
+│  ○ Mongoose + MongoDB (Elegant MongoDB ODM for Node.js · intermediate · stable)
 │
 ◇  Enter your project name:
 │  your-project-name
@@ -199,6 +200,7 @@ your-project/
 | `default`            | Express + TypeScript 기본 스타터                    | ✅ 활성 | 🎯 베이스라인 |
 | `drizzle-postgresql` | Drizzle ORM + PostgreSQL (타입 안전, 제로 오버헤드) | ✅ 활성 | 🌟 100% (8/8) |
 | `express-cargo`      | 데코레이터 기반 요청 바인딩 & 검증 (express-cargo)  | ✅ 활성 | 🧪 검증 예정  |
+| `mongoose-mongodb`   | Mongoose 9 ODM + MongoDB (우아한 MongoDB ODM)       | ✅ 활성 | 🌟 검증 완료  |
 
 ### 🔧 **향상된 개발 도구 지원**
 
@@ -222,6 +224,14 @@ your-project/
 
 > 🎯 **8가지 조합 모두 테스트 및 검증 완료** - 원하는 개발 경험을 선택하세요!
 
+**mongoose-mongodb** 템플릿 주요 특징:
+
+- 🍃 **Mongoose 9** + MongoDB 드라이버 7, Express 5, Zod 4, pino 10
+- 🧱 순수 도메인 객체를 반환하는 Repository 패턴 (`_id` → `id`, 비밀번호 비노출)
+- 🛡️ Mongoose 에러 매핑 (`ValidationError` → 400, 중복 키 → 409), DB 상태 포함 `/health`
+- 🧪 `mongodb-memory-server`(또는 `MONGODB_TEST_URL`) 기반 전용 **Jest** / **Vitest** 테스트 (unit + e2e)
+- ⚙️ **Biome**, **ESLint + Prettier**, **tsup**, **SWC**, **Docker**(`mongo` 서비스)와 검증 완료
+
 ### 🚧 **개발 예정**
 
 #### **ORM/데이터베이스 연동**
@@ -229,7 +239,6 @@ your-project/
 | 템플릿          | 설명                                              | 우선순위 |
 | --------------- | ------------------------------------------------- | -------- |
 | `prisma`        | 타입 안전 데이터베이스 클라이언트, 자동 타입 생성 | 🔥 다음  |
-| `mongoose`      | Node.js용 우아한 MongoDB ODM                      | 🔥 다음  |
 | `typeorm`       | 데코레이터 기반 Active Record ORM                 | 🚧 예정  |
 | `sequelize`     | 성숙한 Promise 기반 SQL ORM                       | 🚧 예정  |
 | `mikro-orm`     | TypeScript용 Data Mapper ORM 패턴                 | 🚧 예정  |

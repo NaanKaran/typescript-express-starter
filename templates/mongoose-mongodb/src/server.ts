@@ -1,68 +1,48 @@
 import 'reflect-metadata';
 import '@config/env';
 import { container } from 'tsyringe';
+import { setupContainer } from '@config/container';
+import { connectDB, disconnectDB } from '@config/database';
 import App from '@/app';
 import { AuthRoute } from '@routes/auth.route';
-import { UserRoute } from '@routes/user.route';
+import { UsersRoute } from '@routes/users.route';
 import { logger } from '@utils/logger';
 
-/**
- * 서버 초기화 및 시작
- */
-async function bootstrap(): Promise<void> {
-  try {
-    logger.info('🚀 Starting MongoDB Express Server...');
+async function bootstrap() {
+  // 🍃 MongoDB 연결 (실패 시 서버를 띄우지 않음)
+  await connectDB();
 
-    // 라우트 등록
-    const routes = [container.resolve(AuthRoute), container.resolve(UserRoute)];
+  // 🔧 하이브리드 DI 컨테이너 설정
+  setupContainer();
 
-    // Express 앱 생성
-    const app = new App(routes);
+  const routes = [container.resolve(AuthRoute), container.resolve(UsersRoute)];
+  const appInstance = new App(routes);
+  const server = appInstance.listen();
 
-    // 서버 시작
-    const server = app.listen();
+  // Graceful Shutdown: HTTP 서버 종료 → MongoDB 연결 해제
+  let shuttingDown = false;
+  const shutdown = (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info(`Received ${signal}, closing server...`);
 
-    // Graceful Shutdown 설정
-    const signals = ['SIGINT', 'SIGTERM', 'SIGQUIT'];
-
-    signals.forEach((signal) => {
-      process.on(signal, async () => {
-        logger.info(`📴 Received ${signal}, closing server gracefully...`);
-
-        if (server && typeof server.close === 'function') {
-          server.close(async () => {
-            logger.info('📴 HTTP server closed');
-
-            // 앱 정리 작업 (MongoDB 연결 해제 등)
-            await app.shutdown();
-
-            process.exit(0);
-          });
-        } else {
-          // 앱 정리 작업
-          await app.shutdown();
-          process.exit(0);
-        }
-      });
+    server.close(async () => {
+      await disconnectDB();
+      logger.info('HTTP server and MongoDB connection closed gracefully');
+      process.exit(0);
     });
 
-    // 예외 처리
-    process.on('uncaughtException', (error) => {
-      logger.error('❌ Uncaught Exception:', error);
-      process.exit(1);
-    });
+    // 10초 내 종료되지 않으면 강제 종료
+    setTimeout(() => process.exit(1), 10_000).unref();
+  };
 
-    process.on('unhandledRejection', (reason, promise) => {
-      logger.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-      process.exit(1);
-    });
-
-    logger.info('✅ Server started successfully');
-  } catch (error) {
-    logger.error('❌ Failed to start server:', error);
-    process.exit(1);
-  }
+  ['SIGINT', 'SIGTERM'].forEach((signal) => process.on(signal, () => shutdown(signal)));
 }
 
-// 서버 시작
-bootstrap();
+bootstrap().catch((error: unknown) => {
+  logger.error(
+    { error: error instanceof Error ? error.message : error },
+    '❌ Failed to start server',
+  );
+  process.exit(1);
+});

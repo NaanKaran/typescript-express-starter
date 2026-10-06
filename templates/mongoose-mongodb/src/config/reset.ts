@@ -1,56 +1,31 @@
 /**
  * MongoDB 데이터베이스 리셋 스크립트
- * 모든 컬렉션을 삭제하고 초기 상태로 되돌립니다.
+ * 현재 데이터베이스를 삭제(drop)하여 초기 상태로 되돌립니다.
  */
-
-import { connectToDatabase } from './database';
 import mongoose from 'mongoose';
-import { logger } from '../utils/logger';
+import { NODE_ENV } from '@config/env';
+import { connectDB, disconnectDB } from '@config/database';
+import { logger } from '@utils/logger';
 
 async function resetDatabase(): Promise<void> {
+  if (NODE_ENV === 'production') {
+    throw new Error('Refusing to reset the database in production');
+  }
+
+  await connectDB();
+
   try {
-    // 데이터베이스 연결
-    await connectToDatabase();
-    logger.info('Connected to MongoDB for database reset...');
-
-    // 모든 컬렉션 가져오기
-    const collections = await mongoose.connection.db.collections();
-
-    if (collections.length === 0) {
-      logger.info('No collections found. Database is already empty.');
-      return;
-    }
-
-    // 모든 컬렉션 삭제
-    logger.info(`Found ${collections.length} collections. Dropping all...`);
-
-    for (const collection of collections) {
-      await collection.drop();
-      logger.info(`Dropped collection: ${collection.collectionName}`);
-    }
-
-    logger.info('✅ Database reset completed successfully!');
-  } catch (error) {
-    logger.error('❌ Database reset failed:', error);
-    process.exit(1);
+    const dbName = mongoose.connection.name;
+    await mongoose.connection.dropDatabase();
+    logger.info(`✅ Database "${dbName}" dropped successfully!`);
   } finally {
-    // 연결 종료
-    await mongoose.connection.close();
-    logger.info('Database connection closed.');
+    await disconnectDB();
   }
 }
 
-// 스크립트 실행이면 바로 실행
-if (require.main === module) {
-  resetDatabase()
-    .then(() => {
-      logger.info('Reset script completed.');
-      process.exit(0);
-    })
-    .catch((error) => {
-      logger.error('Reset script failed:', error);
-      process.exit(1);
-    });
-}
-
-export { resetDatabase };
+resetDatabase()
+  .then(() => process.exit(0))
+  .catch((error: unknown) => {
+    logger.error({ error: error instanceof Error ? error.message : error }, '❌ Reset failed');
+    process.exit(1);
+  });

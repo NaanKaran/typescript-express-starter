@@ -1,42 +1,25 @@
 import { Router } from 'express';
-import { injectable, inject } from 'tsyringe';
+import { injectable, container } from 'tsyringe';
 import { AuthController } from '@controllers/auth.controller';
-import { Routes } from '@interfaces/routes.interface';
+import { SignupDto, LoginDto } from '@dtos/auth.dto';
+import type { Routes } from '@interfaces/routes.interface';
 import { AuthMiddleware } from '@middlewares/auth.middleware';
 import { ValidationMiddleware } from '@middlewares/validation.middleware';
-import { signupSchema, loginSchema } from '@dtos/auth.dto';
 
-/**
- * Auth Route
- */
 @injectable()
 export class AuthRoute implements Routes {
   public router: Router = Router();
   public path = '/auth';
+  private readonly authController: AuthController;
 
-  constructor(@inject(AuthController) private authController: AuthController) {
+  constructor() {
+    this.authController = container.resolve(AuthController);
     this.initializeRoutes();
   }
 
-  /**
-   * 라우트 초기화
-   */
-  private initializeRoutes(): void {
-    // 회원가입
-    this.router.post(
-      `${this.path}/signup`,
-      ValidationMiddleware(signupSchema),
-      this.authController.signup,
-    );
-
-    // 로그인
-    this.router.post(
-      `${this.path}/login`,
-      ValidationMiddleware(loginSchema),
-      this.authController.login,
-    );
-
-    // 로그아웃 (인증 필요)
-    this.router.post(`${this.path}/logout`, AuthMiddleware, this.authController.logout);
+  private initializeRoutes() {
+    this.router.post('/signup', ValidationMiddleware(SignupDto), this.authController.signUp);
+    this.router.post('/login', ValidationMiddleware(LoginDto), this.authController.logIn);
+    this.router.post('/logout', AuthMiddleware, this.authController.logOut);
   }
 }

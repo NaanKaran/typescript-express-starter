@@ -1,89 +1,44 @@
-import { Request, Response, NextFunction } from 'express';
-import { injectable, inject } from 'tsyringe';
+import type { Request, Response, RequestHandler } from 'express';
+import { injectable, container } from 'tsyringe';
+import { NODE_ENV } from '@config/env';
+import type { LoginRequest, SignupRequest } from '@dtos/auth.dto';
+import type { RequestWithUser } from '@interfaces/auth.interface';
 import { AuthService } from '@services/auth.service';
-import { logger } from '@utils/logger';
+import { asyncHandler } from '@utils/asyncHandler';
 
-/**
- * Auth Controller
- */
 @injectable()
 export class AuthController {
-  constructor(@inject(AuthService) private authService: AuthService) {}
+  private readonly authService: AuthService;
 
-  /**
-   * 회원가입
-   * POST /api/v1/auth/signup
-   */
-  signup = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { email, password } = req.body;
+  constructor() {
+    this.authService = container.resolve(AuthService);
+  }
 
-      logger.info('Signup request received', { email });
+  public signUp: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
+    const userData: SignupRequest = req.body;
+    const signUpUserData = await this.authService.signup(userData);
 
-      const newUser = await this.authService.signup({ email, password });
+    res.status(201).json({ data: signUpUserData, message: 'signup' });
+  });
 
-      res.status(201).json({
-        data: newUser,
-        message: 'signup',
-      });
+  public logIn: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
+    const loginData: LoginRequest = req.body;
+    const { cookie, user } = await this.authService.login(loginData);
 
-      logger.info('Signup successful', { userId: newUser.id, email });
-    } catch (error) {
-      logger.error('Signup failed', { error, body: req.body });
-      next(error);
-    }
-  };
+    res.setHeader('Set-Cookie', [cookie]);
+    res.status(200).json({ data: user, message: 'login' });
+  });
 
-  /**
-   * 로그인
-   * POST /api/v1/auth/login
-   */
-  login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { email, password } = req.body;
+  public logOut: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
+    const userReq = req as RequestWithUser;
+    await this.authService.logout(userReq.user);
 
-      logger.info('Login request received', { email });
-
-      const { cookie, user, token } = await this.authService.login({ email, password });
-
-      // HTTP-Only 쿠키 설정
-      res.setHeader('Set-Cookie', [cookie]);
-
-      res.status(200).json({
-        data: user,
-        message: 'login',
-      });
-
-      logger.info('Login successful', { userId: user.id, email });
-    } catch (error) {
-      logger.error('Login failed', { error, body: req.body });
-      next(error);
-    }
-  };
-
-  /**
-   * 로그아웃
-   * POST /api/v1/auth/logout
-   */
-  logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const userId = (req as any).user?.id;
-
-      logger.info('Logout request received', { userId });
-
-      await this.authService.logout(userId);
-
-      // 쿠키 삭제
-      res.setHeader('Set-Cookie', ['Authorization=; HttpOnly; Max-Age=0; Path=/; SameSite=Lax;']);
-
-      res.status(200).json({
-        message: 'logout',
-      });
-
-      logger.info('Logout successful', { userId });
-    } catch (error) {
-      logger.error('Logout failed', { error });
-      next(error);
-    }
-  };
+    res.clearCookie('Authorization', {
+      httpOnly: true,
+      path: '/',
+      sameSite: 'lax',
+      secure: NODE_ENV === 'production',
+    });
+    res.status(200).json({ message: 'logout' });
+  });
 }

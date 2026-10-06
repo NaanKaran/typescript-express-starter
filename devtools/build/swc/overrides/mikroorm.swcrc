@@ -24,7 +24,6 @@
     "minify": {
       "compress": {
         "arguments": false,
-        "destructuring": false,
         "module": false,
         "toplevel": false,
         "hoist_funs": false,
@@ -33,7 +32,7 @@
         "unsafe": false,
         "unsafe_arrows": false,
         "unsafe_comps": false,
-        "unsafe_function": false,
+        "unsafe_Function": false,
         "unsafe_math": false,
         "unsafe_symbols": false,
         "unsafe_methods": false,
@@ -67,5 +66,5 @@
     "noInterop": false,
     "ignoreDynamic": false,
   },
-  "exclude": ["node_modules", "dist", "coverage", "**/*.spec.ts", "**/*.test.ts", "logs"],
+  "exclude": ["\\.(spec|test)\\.ts$", "(^|/)src/test/"],
 }

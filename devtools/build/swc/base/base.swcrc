@@ -35,5 +35,6 @@
   },
   "module": {
     "type": "commonjs"
-  }
+  },
+  "exclude": ["\\.(spec|test)\\.ts$", "(^|/)src/test/"]
 }

@@ -15,7 +15,7 @@
       },
     },
     "target": "es2022",
-    "externalHelpers": true,
+    "externalHelpers": false,
     "keepClassNames": true,
     "loose": false,
     "minify": {
@@ -51,14 +51,5 @@
     "strictMode": true,
     "noInterop": false,
   },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "prisma/migrations/**/*",
-    "prisma/seed.ts",
-    "**/*.spec.ts",
-    "**/*.test.ts",
-    "coverage",
-    "logs",
-  ],
+  "exclude": ["\\.(spec|test)\\.ts$", "(^|/)src/test/"],
 }

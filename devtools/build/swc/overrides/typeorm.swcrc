@@ -11,7 +11,7 @@
       "decoratorMetadata": true,
     },
     "target": "es2020",
-    "externalHelpers": true,
+    "externalHelpers": false,
     "keepClassNames": true,
     "loose": false,
     "minify": {
@@ -46,14 +46,5 @@
     "strict": true,
     "strictMode": true,
   },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "src/migration/**/*",
-    "src/subscriber/**/*",
-    "**/*.spec.ts",
-    "**/*.test.ts",
-    "coverage",
-    "logs",
-  ],
+  "exclude": ["\\.spec\\.ts$", "\\.test\\.ts$", "^src/test/", "^src/migration/", "^src/subscriber/"],
 }

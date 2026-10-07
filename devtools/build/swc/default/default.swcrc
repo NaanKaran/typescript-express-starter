@@ -29,5 +29,6 @@
   "module": {
     "type": "commonjs"
   },
-  "sourceMaps": true
+  "sourceMaps": true,
+  "exclude": ["\\.spec\\.ts$", "\\.test\\.ts$", "^src/test/"]
 }

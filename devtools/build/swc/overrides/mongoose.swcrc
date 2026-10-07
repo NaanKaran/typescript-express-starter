@@ -38,5 +38,5 @@
     "strictMode": true
   },
   "sourceMaps": true,
-  "exclude": ["\\.spec\\.ts$", "\\.test\\.ts$", "/test/"]
+  "exclude": ["\\.spec\\.ts$", "\\.test\\.ts$", "^src/test/"]
 }

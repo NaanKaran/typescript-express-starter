@@ -12,7 +12,7 @@
       "decoratorMetadata": true
     },
     "target": "es2022",
-    "externalHelpers": true,
+    "externalHelpers": false,
     "keepClassNames": true,
     "loose": true,
     "minify": {
@@ -50,14 +50,5 @@
     "strictMode": true
   },
   "sourceMaps": true,
-  "exclude": [
-    "node_modules",
-    "dist",
-    "drizzle/**/*",
-    "migrate.ts",
-    "**/*.spec.ts",
-    "**/*.test.ts",
-    "coverage",
-    "logs"
-  ]
+  "exclude": ["\\.spec\\.ts$", "\\.test\\.ts$", "^src/test/", "^src/config/migrate\\.ts$"]
 }

@@ -67,5 +67,5 @@
     "noInterop": false,
     "ignoreDynamic": false,
   },
-  "exclude": ["node_modules", "dist", "coverage", "**/*.spec.ts", "**/*.test.ts", "logs"],
+  "exclude": ["\\.spec\\.ts$", "\\.test\\.ts$", "^src/test/"],
 }

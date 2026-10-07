@@ -1,91 +1,102 @@
-import { Request, Response, NextFunction } from "express";
-import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
-import { ZodError, type ZodIssue } from "zod";
-import { NODE_ENV } from "@config/env";
-import { HttpException } from "@exceptions/http.exception";
-import { logger } from "@utils/logger";
+import type { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
+import { ZodError } from 'zod';
+import { NODE_ENV } from '@config/env';
+import { HttpException } from '@exceptions/http.exception';
+import {
+  type StandardErrorResponse,
+  type ValidationErrorDetail,
+  HTTP_ERROR_MESSAGES,
+} from '@interfaces/error.interface';
+import { logger } from '@utils/logger';
 
-type ValidationIssue = { path: string; message: string };
-type HttpExceptionWithData = HttpException & { data?: unknown };
-type WithStack = { stack?: string };
+const hasName = (e: unknown, name: string): boolean => e instanceof Error && e.name === name;
 
-interface ErrorDetails {
-  code: number;
-  message: string;
-  data?: unknown;
-  stack?: string;
-}
-interface ErrorResponseBody {
-  success: false;
-  error: ErrorDetails;
-}
-
-/** 타입가드들 */
-const isZodError = (e: unknown): e is ZodError => {
-  return e instanceof ZodError;
-};
-
-/** jsonwebtoken은 런타임에 따라 클래스 경계 이슈가 있을 수 있어 name 기반 가드 권장 */
-const isTokenExpiredError = (e: unknown): e is TokenExpiredError => {
-  return e instanceof Error && (e as any).name === "TokenExpiredError";
-};
-const isJsonWebTokenError = (e: unknown): e is JsonWebTokenError => {
-  return e instanceof Error && (e as any).name === "JsonWebTokenError";
-};
+/** MongoDB duplicate key error (E11000) */
+const isDuplicateKeyError = (e: unknown): e is Error & { keyValue?: Record<string, unknown> } =>
+  typeof e === 'object' && e !== null && (e as { code?: unknown }).code === 11000;
 
 const toHttpException = (err: unknown): HttpException => {
   if (err instanceof HttpException) return err;
 
-  if (isZodError(err)) {
-    const data: ValidationIssue[] = err.issues.map((i: ZodIssue) => ({
-      path: i.path.join("."),
-      message: i.message,
+  if (err instanceof ZodError) {
+    const details: ValidationErrorDetail[] = err.issues.map((issue) => ({
+      field: issue.path.join('.'),
+      message: issue.message,
     }));
-    return new HttpException(400, "Validation failed", data);
+    return new HttpException(400, 'Validation failed', details);
   }
 
-  if (isTokenExpiredError(err)) return new HttpException(401, "Token expired");
-  if (isJsonWebTokenError(err)) return new HttpException(401, "Invalid token");
+  // Mongoose 스키마 검증 실패
+  if (err instanceof mongoose.Error.ValidationError) {
+    const details: ValidationErrorDetail[] = Object.values(err.errors).map((e) => ({
+      field: e.path,
+      message: e.message,
+    }));
+    return new HttpException(400, 'Validation failed', details);
+  }
+
+  // 잘못된 ObjectId 등 타입 캐스팅 실패
+  if (err instanceof mongoose.Error.CastError) {
+    return new HttpException(400, `Invalid value for "${err.path}"`);
+  }
+
+  // unique 인덱스 위반
+  if (isDuplicateKeyError(err)) {
+    const fields = Object.keys(err.keyValue ?? {});
+    return new HttpException(409, `Duplicate value for ${fields.join(', ') || 'unique field'}`);
+  }
+
+  if (hasName(err, 'TokenExpiredError')) return new HttpException(401, 'Token expired');
+  if (hasName(err, 'JsonWebTokenError')) return new HttpException(401, 'Invalid token');
 
   const e = err as Error | undefined;
-  return new HttpException(500, e?.message || "Internal Server Error");
-};
-
-const extractStack = (err: unknown): string | undefined => {
-  if (err && typeof err === "object" && "stack" in err) {
-    const s = (err as WithStack).stack;
-    return typeof s === "string" ? s : undefined;
-  }
-  return undefined;
+  return new HttpException(500, e?.message || 'Internal Server Error');
 };
 
 export const ErrorMiddleware = (
   error: unknown,
   req: Request,
   res: Response,
-  _next: NextFunction
+  next: NextFunction,
 ) => {
   const httpErr = toHttpException(error);
   const status = httpErr.status || 500;
-  const message = httpErr.message || "Something went wrong";
+  const message =
+    httpErr.message ||
+    HTTP_ERROR_MESSAGES[status as keyof typeof HTTP_ERROR_MESSAGES] ||
+    'Something went wrong';
 
-  if (res.headersSent) return _next(httpErr);
+  if (res.headersSent) return next(httpErr);
 
-  const stack = extractStack(httpErr);
+  const stack = error instanceof Error ? error.stack : undefined;
   logger.error(
     `[${req.method}] ${req.originalUrl} | ${status} | ${message}${
-      stack ? `\n${stack}` : ""
-    }`
+      status >= 500 && stack ? `\n${stack}` : ''
+    }`,
   );
 
-  const body: ErrorResponseBody = {
+  const errorResponse: StandardErrorResponse = {
     success: false,
-    error: { code: status, message },
+    error: {
+      code: status,
+      // 프로덕션에서는 내부 에러 메시지 노출 방지
+      message: status >= 500 && NODE_ENV === 'production' ? HTTP_ERROR_MESSAGES[500] : message,
+      timestamp: new Date().toISOString(),
+      path: req.originalUrl,
+    },
   };
 
-  const maybeData = (httpErr as HttpExceptionWithData).data;
-  if (typeof maybeData !== "undefined") body.error.data = maybeData;
-  if (NODE_ENV === "development" && stack) body.error.stack = stack;
+  if (typeof httpErr.data !== 'undefined') {
+    errorResponse.error.details = httpErr.data;
+  }
 
-  res.status(status).json(body);
+  if (NODE_ENV === 'development' && stack) {
+    const details = errorResponse.error.details;
+    errorResponse.error.details = Array.isArray(details)
+      ? { errors: details, stack }
+      : { ...(typeof details === 'object' && details !== null ? details : {}), stack };
+  }
+
+  res.status(status).json(errorResponse);
 };

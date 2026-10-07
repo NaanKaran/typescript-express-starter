@@ -3,96 +3,52 @@ import { verify, TokenExpiredError, JsonWebTokenError } from 'jsonwebtoken';
 import { container } from 'tsyringe';
 import { JWT_SECRET } from '@config/env';
 import { HttpException } from '@exceptions/http.exception';
-import { UserRepository, IUserRepository } from '@repositories/user.repository';
+import type { DataStoredInToken, RequestWithUser } from '@interfaces/auth.interface';
+import { UsersRepository } from '@repositories/users.repository';
 import { logger } from '@utils/logger';
 
-/**
- * JWT 페이로드 인터페이스
- */
-interface DataStoredInToken {
-  id: string;
-}
-
-/**
- * 사용자 정보를 포함한 Request 인터페이스
- */
-export interface RequestWithUser extends Request {
-  user: {
-    id: string;
-    email: string;
-  };
-}
-
-/**
- * Authorization 토큰 추출
- */
 const getAuthorization = (req: Request): string | null => {
-  // 쿠키에서 토큰 확인
-  const cookie = req.cookies?.['Authorization'];
-  if (cookie) return cookie;
+  const cookie: unknown = req.cookies?.['Authorization'];
+  if (typeof cookie === 'string' && cookie) return cookie;
 
-  // Authorization 헤더에서 Bearer 토큰 확인
   const header = req.header('Authorization');
   if (header && header.startsWith('Bearer ')) {
-    return header.replace('Bearer ', '').trim();
+    return header.slice('Bearer '.length).trim();
   }
-
   return null;
 };
 
-/**
- * JWT 인증 미들웨어
- */
-export const AuthMiddleware = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
+export const AuthMiddleware = async (req: Request, _res: Response, next: NextFunction) => {
   try {
-    logger.debug('Auth middleware started');
-
     const token = getAuthorization(req);
     if (!token) {
-      logger.warn('Authentication token missing');
       return next(new HttpException(401, 'Authentication token missing'));
     }
 
     let payload: DataStoredInToken;
     try {
-      payload = verify(token, JWT_SECRET as string) as DataStoredInToken;
-      logger.debug('Token verified successfully', { userId: payload.id });
+      payload = verify(token, JWT_SECRET) as DataStoredInToken;
     } catch (err) {
       if (err instanceof TokenExpiredError) {
-        logger.warn('Authentication token expired');
         return next(new HttpException(401, 'Authentication token expired'));
       }
       if (err instanceof JsonWebTokenError) {
-        logger.warn('Invalid authentication token');
         return next(new HttpException(401, 'Invalid authentication token'));
       }
-      logger.error('Authentication failed', { error: err });
       return next(new HttpException(401, 'Authentication failed'));
     }
 
-    // 사용자 조회
-    const userRepository = container.resolve<IUserRepository>('UserRepository');
-    const findUser = await userRepository.findById(payload.id);
-
-    if (!findUser) {
-      logger.warn('User not found with token', { userId: payload.id });
-      return next(new HttpException(401, 'User not found with this token'));
+    const userRepo = container.resolve(UsersRepository);
+    const findUser = await userRepo.findById(payload.id);
+    if (!findUser || !findUser.isActive) {
+      return next(new HttpException(401, 'User not found or inactive'));
     }
 
-    // Request 객체에 사용자 정보 추가
-    (req as RequestWithUser).user = {
-      id: findUser._id.toString(),
-      email: findUser.email,
-    };
-
-    logger.debug('User authenticated successfully', { userId: findUser._id });
+    (req as RequestWithUser).user = findUser;
     next();
   } catch (error) {
-    logger.error('Authentication middleware error', { error });
+    if (error instanceof HttpException) return next(error);
+    logger.error({ error }, 'Authentication error:');
     next(new HttpException(500, 'Authentication middleware error'));
   }
 };

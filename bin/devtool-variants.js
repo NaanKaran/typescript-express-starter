@@ -15,14 +15,14 @@ const TEST_VARIANTS = {
     drizzle: 'src-drizzle',
     // Keep Prisma on the generic test fixture until a complete src-prisma/test set exists.
     prisma: 'src-default',
-    mongoose: 'src-default',
+    mongoose: 'src-mongoose',
     typegoose: 'src-default',
   },
   vitest: {
     default: 'src-default',
     drizzle: 'src-drizzle',
     prisma: 'src-default',
-    mongoose: 'src-default',
+    mongoose: 'src-mongoose',
     typegoose: 'src-default',
   },
 };

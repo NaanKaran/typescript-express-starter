@@ -111,6 +111,7 @@ typescript-express-starter
 │  ● Express TypeScript (Basic Express + TypeScript starter · beginner · stable)
 │  ○ Drizzle PostgreSQL (Modern SQL toolkit with type safety + full devtools · intermediate · stable)
 │  ○ Express + express-cargo (Declarative validation & binding with decorators · intermediate · stable)
+│  ○ Mongoose + MongoDB (Elegant MongoDB ODM for Node.js · intermediate · stable)
 │
 ◇  Enter your project name:
 │  your-project-name
@@ -217,6 +218,7 @@ Current template status with comprehensive compatibility tested:
 | `default`            | Express + TypeScript starter                        | ✅ Active | 🎯 Baseline   |
 | `drizzle-postgresql` | Drizzle ORM + PostgreSQL (Type-safe, Zero overhead) | ✅ Active | 🌟 100% (8/8) |
 | `express-cargo`      | Decorator-based request binding & validation        | ✅ Active | 🧪 Pending    |
+| `mongoose-mongodb`   | Mongoose 9 ODM + MongoDB (Elegant MongoDB ODM)      | ✅ Active | 🌟 Verified   |
 
 ### 🔧 **Enhanced Development Tools Support**
 
@@ -240,6 +242,14 @@ Current template status with comprehensive compatibility tested:
 
 > 🎯 **All 8 combinations tested and verified** - Choose your preferred development experience!
 
+**mongoose-mongodb** template highlights:
+
+- 🍃 **Mongoose 9** + MongoDB driver 7, Express 5, Zod 4, pino 10
+- 🧱 Repository pattern that returns plain domain objects (`_id` → `id`, password never exposed)
+- 🛡️ Mongoose error mapping (`ValidationError` → 400, duplicate key → 409), `/health` with DB status
+- 🧪 Dedicated **Jest** / **Vitest** suites (unit + e2e) using `mongodb-memory-server` (or `MONGODB_TEST_URL`)
+- ⚙️ Verified with **Biome**, **ESLint + Prettier**, **tsup**, **SWC** and **Docker** (`mongo` service)
+
 ### 🚧 **Coming Soon**
 
 #### **ORM/Database Integration**
@@ -247,7 +257,6 @@ Current template status with comprehensive compatibility tested:
 | Template        | Description                                         | Priority   |
 | --------------- | --------------------------------------------------- | ---------- |
 | `prisma`        | Type-safe database client with auto-generated types | 🔥 Next    |
-| `mongoose`      | Elegant MongoDB ODM for Node.js                     | 🔥 Next    |
 | `typeorm`       | Decorator-based Active Record ORM                   | 🚧 Planned |
 | `sequelize`     | Mature Promise-based SQL ORM                        | 🚧 Planned |
 | `mikro-orm`     | Data Mapper ORM pattern for TypeScript              | 🚧 Planned |

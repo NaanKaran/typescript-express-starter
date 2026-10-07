@@ -1,36 +1,17 @@
 {
-  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/crates/oxc_linter/src/config/oxlint.schema.json",
-  "extends": [],
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import", "node"],
+  "categories": {
+    "correctness": "error"
+  },
   "rules": {
-    "no-unused-vars": "off",
     "no-console": "off",
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-unused-vars": "off",
-    "@typescript-eslint/explicit-function-return-type": "off",
-    "@typescript-eslint/explicit-module-boundary-types": "off",
-    "@typescript-eslint/no-unused-function-parameters": "off",
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
     "prefer-const": "warn",
     "no-var": "error",
-    "no-useless-escape": "off",
-    "no-undef": "off",
-    "no-redeclare": "off",
-    "eslint-plugin-unicorn/no-useless-fallback-in-spread": "off",
+    "typescript/no-explicit-any": "warn",
     "typescript/no-non-null-assertion": "off",
-    "import/no-unresolved": "off"
+    "unicorn/no-useless-fallback-in-spread": "off"
   },
-  "ignorePatterns": [
-    "dist/",
-    "node_modules/",
-    "logs/",
-    "*.d.ts",
-    "coverage/",
-    "**/*.spec.ts",
-    "**/*.test.ts",
-    "**/test/**/*.ts",
-    "**/__tests__/**/*.ts",
-    "jest.config.*",
-    "src/controllers/**",
-    "src/services/**",
-    "src/routes/**"
-  ]
+  "ignorePatterns": ["dist/", "node_modules/", "logs/", "coverage/", "**/*.d.ts"]
 }

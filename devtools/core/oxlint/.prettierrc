@@ -1,20 +1,9 @@
-# Oxlint ignore patterns
-dist/
-node_modules/
-logs/
-coverage/
-*.d.ts
-*.js.map
-*.min.js
-
-# Generated files
-__generated__/
-build/
-
-# Test files (if needed)
-**/*.test.ts
-**/*.spec.ts
-
-# Configuration files
-*.config.js
-*.config.ts
+{
+  "printWidth": 100,
+  "tabWidth": 2,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "semi": true,
+  "arrowParens": "always",
+  "endOfLine": "lf"
+}

@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
-    "target": "es2020",
+    "target": "es2022",
     "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "dist",
     "declaration": true,
     "sourceMap": true,
     "strict": true,
-    "lib": ["es2020", "esnext.asynciterable"],
-
+    "skipLibCheck": true,
+    "lib": ["es2022"],
     "baseUrl": "src",
     "paths": {
       "@/*": ["*"],
@@ -18,12 +18,12 @@
       "@exceptions/*": ["exceptions/*"],
       "@interfaces/*": ["interfaces/*"],
       "@middlewares/*": ["middlewares/*"],
+      "@models/*": ["models/*"],
       "@repositories/*": ["repositories/*"],
       "@routes/*": ["routes/*"],
       "@services/*": ["services/*"],
       "@utils/*": ["utils/*"]
     },
-
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
@@ -33,7 +33,8 @@
     "emitDecoratorMetadata": true,
     "pretty": true,
     "allowJs": false,
-    "noEmit": false
+    "noEmit": false,
+    "types": ["node"]
   },
   "include": ["src/**/*.ts", "src/**/*.json"],
   "exclude": ["node_modules", "dist", "coverage", "logs", "src/http"]

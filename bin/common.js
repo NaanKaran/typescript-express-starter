@@ -117,29 +117,30 @@ export const TEMPLATES_VALUES = [
     enterpriseReady: true,
   },
 
+  {
+    /** Mongoose ODM + MongoDB 템플릿 */
+    name: 'Mongoose + MongoDB',
+    value: 'mongoose-mongodb',
+    desc: 'Elegant MongoDB ODM for Node.js',
+    active: true,
+    tags: ['mongodb', 'mongoose', 'odm', 'nosql', 'verified'],
+    version: 'v9.x',
+    maintainer: 'core',
+    lastUpdated: '2026-10-06',
+    devtoolsCompatibility: '100%',
+    verificationStatus: 'complete',
+    complexity: 'intermediate',
+    maturity: 'stable',
+    performanceRating: 'A',
+    recommendedFor: ['NoSQL projects', 'document-based data', 'flexible schemas'],
+    learningCurve: 'moderate',
+    enterpriseReady: true,
+  },
+
   /**
    * ==== [개발 중인 템플릿들 - DevTools 호환성 테스트 대기 중] ====
    * 아래 템플릿들은 현재 개발 중이며 DevTools 호환성 테스트를 진행 중입니다.
    */
-  {
-    /** Mongoose ODM + MongoDB 템플릿 (개발 중) */
-    name: 'Mongoose + MongoDB',
-    value: 'mongoose-mongodb',
-    desc: 'Traditional MongoDB ODM',
-    active: false,
-    tags: ['mongodb', 'odm', 'database', 'testing'],
-    version: 'v7.x',
-    maintainer: 'nosql-team',
-    lastUpdated: '2026-02-23',
-    devtoolsCompatibility: 'testing',
-    verificationStatus: 'pending',
-    complexity: 'intermediate',
-    maturity: 'beta',
-    performanceRating: 'B',
-    recommendedFor: ['NoSQL projects', 'document-based data'],
-    learningCurve: 'moderate',
-    enterpriseReady: false,
-  },
   {
     /** Typegoose ODM + MongoDB 템플릿 (개발 중) */
     name: 'Typegoose + MongoDB',
@@ -316,7 +317,7 @@ export const DEVTOOLS_VALUES = [
     category: 'Linter',
     files: ['.oxlintrc.json', '.prettierrc'],
     pkgs: [],
-    devPkgs: ['oxlint@^1.14.0', '@oxlint/migrate@^1.14.0', 'prettier@3.6.2'],
+    devPkgs: ['oxlint@1.87.0', '@oxlint/migrate@1.87.0', 'prettier@3.6.2'],
     scripts: {
       lint: 'oxlint .',
       'lint:fix': 'oxlint . --fix',
